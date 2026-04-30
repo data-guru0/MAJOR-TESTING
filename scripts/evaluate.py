@@ -4,7 +4,7 @@ import sys
 import psycopg2
 from datasets import Dataset
 from ragas import evaluate
-from ragas.metrics.collections import Faithfulness, AnswerRelevancy
+from ragas.metrics import faithfulness, answer_relevancy
 
 
 def main():
@@ -41,7 +41,7 @@ def main():
         data["contexts"].append([file or ""])
 
     dataset = Dataset.from_dict(data)
-    results = evaluate(dataset, metrics=[Faithfulness(), AnswerRelevancy()])
+    results = evaluate(dataset, metrics=[faithfulness, answer_relevancy])
 
     print("Evaluation results:")
     print(results)
