@@ -8,7 +8,7 @@ from ragas.metrics.collections import faithfulness, answer_relevancy
 
 
 def main():
-    database_url = os.environ["DATABASE_URL"]
+    database_url = os.environ["DATABASE_URL"].replace("postgresql+asyncpg://", "postgresql://")
     conn = psycopg2.connect(database_url)
     cursor = conn.cursor()
 
