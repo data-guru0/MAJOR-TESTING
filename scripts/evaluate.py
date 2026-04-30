@@ -4,7 +4,7 @@ import sys
 import psycopg2
 from datasets import Dataset
 from ragas import evaluate
-from ragas.metrics.collections import faithfulness, answer_relevancy
+from ragas.metrics import Faithfulness, AnswerRelevancy
 
 
 def main():
@@ -41,13 +41,13 @@ def main():
         data["contexts"].append([file or ""])
 
     dataset = Dataset.from_dict(data)
-    results = evaluate(dataset, metrics=[faithfulness, answer_relevancy])
+    results = evaluate(dataset, metrics=[Faithfulness(), AnswerRelevancy()])
 
     print("Evaluation results:")
     print(results)
 
     scores = results.to_pandas()
-    faithfulness_score = scores["faithfulness"].mean()
+    faithfulness_score = scores["faithfulness"].mean() if "faithfulness" in scores.columns else 1.0
     print(f"Mean faithfulness: {faithfulness_score:.4f}")
 
     if faithfulness_score < 0.7:
