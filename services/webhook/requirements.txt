@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+httpx
+pydantic-settings
+sqlalchemy[asyncio]
+asyncpg
+alembic
+celery
+redis
+prometheus-fastapi-instrumentator

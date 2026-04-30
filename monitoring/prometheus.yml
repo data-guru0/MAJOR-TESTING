@@ -1,0 +1,33 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: gateway
+    static_configs:
+      - targets:
+          - gateway:8000
+    metrics_path: /metrics
+
+  - job_name: webhook
+    static_configs:
+      - targets:
+          - webhook:8001
+    metrics_path: /metrics
+
+  - job_name: orchestrator
+    static_configs:
+      - targets:
+          - orchestrator:8002
+    metrics_path: /metrics
+
+  - job_name: reviewer
+    static_configs:
+      - targets:
+          - reviewer:8003
+    metrics_path: /metrics
+
+  - job_name: learner
+    static_configs:
+      - targets:
+          - learner:8004
+    metrics_path: /metrics

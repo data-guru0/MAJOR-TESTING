@@ -1,0 +1,16 @@
+name: Webhook CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths: ["services/webhook/**"]
+  pull_request:
+    branches: [main]
+    paths: ["services/webhook/**"]
+
+jobs:
+  ci:
+    uses: ./.github/workflows/service-ci.yml
+    with:
+      service: webhook
+    secrets: inherit

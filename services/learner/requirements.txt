@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+httpx
+pydantic-settings
+sqlalchemy[asyncio]
+asyncpg
+celery
+redis
+prometheus-fastapi-instrumentator

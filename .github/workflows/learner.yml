@@ -1,0 +1,16 @@
+name: Learner CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths: ["services/learner/**"]
+  pull_request:
+    branches: [main]
+    paths: ["services/learner/**"]
+
+jobs:
+  ci:
+    uses: ./.github/workflows/service-ci.yml
+    with:
+      service: learner
+    secrets: inherit
