@@ -5,21 +5,48 @@ on:
     - cron: "0 9 * * 1"
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   evaluate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
-          python-version: "3.11"
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
 
-      - name: Install dependencies
-        run: pip install ragas langchain-openai psycopg2-binary
+      - uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Run evaluation
+      - name: Build and push evaluate image
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: python scripts/evaluate.py
+          ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+        run: |
+          docker build -t $ECR_REGISTRY/evaluate:latest -f scripts/Dockerfile .
+          docker push $ECR_REGISTRY/evaluate:latest
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }} --region us-east-1
+
+      - name: Delete old job if exists
+        run: kubectl delete job evaluate --ignore-not-found
+
+      - name: Run evaluation job
+        env:
+          ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+        run: |
+          sed "s|IMAGE_PLACEHOLDER|$ECR_REGISTRY/evaluate:latest|g" infra/k8s/evaluate-job.yaml | kubectl apply -f -
+
+      - name: Wait for job
+        run: kubectl wait --for=condition=complete job/evaluate --timeout=300s
+
+      - name: Print logs
+        run: kubectl logs job/evaluate
+
+      - name: Cleanup
+        if: always()
+        run: kubectl delete job evaluate --ignore-not-found

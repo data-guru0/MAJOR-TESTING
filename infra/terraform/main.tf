@@ -291,3 +291,12 @@ resource "aws_ecr_repository" "learner" {
     Environment = var.environment
   }
 }
+
+resource "aws_ecr_repository" "evaluate" {
+  name                 = "evaluate"
+  image_tag_mutability = "MUTABLE"
+
+  tags = {
+    Environment = var.environment
+  }
+}
