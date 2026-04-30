@@ -4,7 +4,7 @@ import sys
 import psycopg2
 from datasets import Dataset
 from ragas import evaluate
-from ragas.metrics import Faithfulness, AnswerRelevancy
+from ragas.metrics.collections import Faithfulness, AnswerRelevancy
 
 
 def main():
