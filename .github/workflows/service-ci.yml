@@ -42,7 +42,7 @@ jobs:
           ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
           SERVICE: ${{ inputs.service }}
         run: |
-          docker build -t $ECR_REGISTRY/$SERVICE:$GITHUB_SHA ./services/$SERVICE
+          docker build -t $ECR_REGISTRY/$SERVICE:$GITHUB_SHA -f ./services/$SERVICE/Dockerfile .
           docker tag $ECR_REGISTRY/$SERVICE:$GITHUB_SHA $ECR_REGISTRY/$SERVICE:latest
           docker push $ECR_REGISTRY/$SERVICE:$GITHUB_SHA
           docker push $ECR_REGISTRY/$SERVICE:latest

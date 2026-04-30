@@ -8,6 +8,10 @@ on:
     branches: [main]
     paths: ["services/gateway/**"]
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   ci:
     uses: ./.github/workflows/service-ci.yml
