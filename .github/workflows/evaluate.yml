@@ -42,9 +42,10 @@ jobs:
           sed "s|IMAGE_PLACEHOLDER|$ECR_REGISTRY/evaluate:latest|g" infra/k8s/evaluate-job.yaml | kubectl apply -f -
 
       - name: Wait for job
-        run: kubectl wait --for=condition=complete job/evaluate --timeout=300s
+        run: kubectl wait --for=condition=complete job/evaluate --timeout=600s
 
       - name: Print logs
+        if: always()
         run: kubectl logs job/evaluate
 
       - name: Cleanup

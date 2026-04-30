@@ -650,19 +650,10 @@ For each secret: click "New repository secret", enter the Name and Value, click 
 | `AWS_ROLE_ARN` | the full ARN from Step 6.5 — looks like `arn:aws:iam::123456789012:role/github-actions-ai-reviewer` |
 | `EKS_CLUSTER_NAME` | `ai-code-reviewer` |
 
-**AI secrets — add these 2:**
+After adding all secrets, you should have **3 secrets** total: `AWS_ACCOUNT_ID`, `AWS_ROLE_ARN`, `EKS_CLUSTER_NAME`.
 
-| Name | Value | Used by |
-|---|---|---|
-| `OPENAI_API_KEY` | your OpenAI key from Phase 7 | Weekly evaluate.yml job |
-| `DATABASE_URL` | `postgresql://dbadmin:YourStrongPassword123!@YOUR_RDS_ENDPOINT/codereviewer` | Weekly evaluate.yml job |
-
-For the `DATABASE_URL` value, replace `YOUR_RDS_ENDPOINT` with the `rds_endpoint` value from your Terraform output. Remove the `:5432` from the end if it is already included.
-
-Example:
-`postgresql://dbadmin:YourStrongPassword123!@ai-code-reviewer-postgres.abc123.us-east-1.rds.amazonaws.com/codereviewer`
-
-After adding all secrets, you should have **5 secrets** total: `AWS_ACCOUNT_ID`, `AWS_ROLE_ARN`, `EKS_CLUSTER_NAME`, `OPENAI_API_KEY`, `DATABASE_URL`.
+> **Note — `OPENAI_API_KEY` and `DATABASE_URL` do NOT go here:**
+> The evaluate job runs inside the Kubernetes cluster and reads these values directly from `infra/k8s/secret.yaml` at runtime. They do not need to be GitHub Actions secrets.
 
 > **Important — what does NOT go here:**
 > - `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` are NOT GitHub Actions secrets. No pipeline uses them. They go only into `infra/k8s/secret.yaml` in Phase 12 so Kubernetes pods can read them at runtime.
