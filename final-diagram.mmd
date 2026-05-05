@@ -1,0 +1,104 @@
+flowchart TB
+
+%% USERS / ENTRY
+A[👨‍💻 Developer Creates Pull Request on GitHub] --> B[🐙 GitHub PR Event]
+B --> C[🌐 Public Webhook URL]
+
+%% INFRA ENTRY
+C --> D[⚖️ AWS Application Load Balancer]
+
+%% GATEWAY
+D --> E[🚪 Gateway Service : FastAPI]
+E --> E1[Verify HMAC Signature]
+E --> E2[Reject Fake Requests]
+E --> F[📩 Forward Verified Event]
+
+%% WEBHOOK
+F --> G[🪝 Webhook Service : FastAPI]
+G --> G1[Parse PR Number / Repo / SHA]
+G --> G2[Deduplicate Existing SHA]
+G --> G3[Store PR Metadata]
+
+%% DATABASE
+G3 --> DB[(🗄️ PostgreSQL RDS)]
+
+%% QUEUE
+G --> H[📬 Push Job to Redis Queue]
+H --> R[(⚡ Redis / ElastiCache)]
+
+%% WORKER
+R --> I[⚙️ Celery Worker]
+
+%% ORCHESTRATOR
+I --> J[🧠 Orchestrator Service]
+J --> J1[Fetch Code Diff from GitHub API]
+J --> J2[Load Past Repo Patterns]
+J --> J3[Run LangGraph Multi-Agent Review]
+
+%% AI AGENTS
+J3 --> K1[🔍 Static Analysis Agent]
+J3 --> K2[🛡️ Security Agent]
+J3 --> K3[🎨 Style Agent]
+J3 --> K4[🏗️ Architecture Agent]
+
+K1 --> L[Merge Findings]
+K2 --> L
+K3 --> L
+K4 --> L
+
+L --> M[Remove Duplicate Comments]
+M --> N[Save Findings to DB]
+
+N --> DB
+
+%% REVIEWER
+M --> O[💬 Reviewer Service]
+O --> O1[Generate GitHub App JWT]
+O --> O2[Create Installation Token]
+O --> O3[Post Inline Comments]
+O --> O4[Post Summary Review]
+
+O --> P[🐙 GitHub Pull Request Updated]
+
+%% FEEDBACK LOOP
+P --> Q[Developer Fixes Code & Pushes Again]
+Q --> B
+
+%% MERGE EVENT
+P --> Z{PR Merged?}
+Z -->|Yes| AA[📘 Learner Worker]
+AA --> AB[📈 Learner Service]
+AB --> AC[Extract Frequent Issues]
+AC --> AD[Store Repo Patterns]
+AD --> DB
+AD --> AE[Future Reviews Become Smarter]
+
+%% MONITORING
+subgraph Monitoring & Observability
+MO1[📊 Prometheus]
+MO2[📉 Grafana]
+MO3[🧾 LangFuse]
+end
+
+E --> MO1
+G --> MO1
+J --> MO1
+O --> MO1
+J --> MO3
+MO1 --> MO2
+
+%% DEPLOYMENT
+subgraph DevOps CI/CD
+CI1[GitHub Actions]
+CI2[Docker Build]
+CI3[AWS ECR]
+CI4[EKS Kubernetes Cluster]
+end
+
+CI1 --> CI2 --> CI3 --> CI4
+CI4 --> E
+CI4 --> G
+CI4 --> J
+CI4 --> O
+CI4 --> AB
+CI4 --> I
