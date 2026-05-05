@@ -687,7 +687,7 @@ Because this is the first time, you need to trigger all 5 pipelines at once. The
 Open CMD:
 
 ```
-cd "D:\MAJOR PROJECT KRISH SIR\ai-code-reviewer"
+for %s in (gateway webhook orchestrator reviewer learner) do echo 6666 > services\%s\deploy.txt
 ```
 
 ```
@@ -731,23 +731,6 @@ Each workflow has three jobs in sequence:
 
 If any job fails, click on it, then click on the failed step to read the error message.
 
-### 13.3 Common first-deployment failures
-
-**"Error: Could not assume role" or "Not authorized to perform sts:AssumeRoleWithWebIdentity"**
-
-This means the OIDC trust relationship is not set up correctly.
-Go back to Step 6.5 and check:
-- The condition value exactly matches your GitHub username and repo name
-- There are no typos — it must be `repo:data-guru0/MAJOR-PROJECT-KRISH-SIR:*`
-
-**"Repository does not exist" for ECR**
-
-Terraform did not finish creating the ECR repositories.
-Go back to the terraform folder and run `terraform apply` again.
-
-**"error: exec plugin: invalid apiVersion"**
-
-Your kubectl version is incompatible. Download the latest version from https://kubernetes.io/docs/tasks/tools/install-kubectl-windows/
 
 ### 13.4 Re-trigger all 5 pipelines after Phase 12 is complete
 
@@ -760,7 +743,7 @@ cd "D:\MAJOR PROJECT KRISH SIR\ai-code-reviewer"
 ```
 
 ```
-echo 2 > services\gateway\deploy.txt && echo 2 > services\webhook\deploy.txt && echo 2 > services\orchestrator\deploy.txt && echo 2 > services\reviewer\deploy.txt && echo 2 > services\learner\deploy.txt
+for %s in (gateway webhook orchestrator reviewer learner) do echo 6666 > services\%s\deploy.txt
 ```
 
 ```
@@ -1840,3 +1823,58 @@ Both should return empty. You are now fully cleaned up with zero ongoing charges
 ### 25.4 To redeploy later
 
 Just follow the documentation from Phase 8 onwards — run `terraform apply`, apply the k8s manifests, trigger the pipelines. Everything will come back up exactly as before.
+
+---
+
+## 26. Cleanup — Correct Order to Avoid Errors
+
+Terraform only destroys what it created. The AWS Load Balancer Controller creates load balancers and security groups dynamically at runtime — Terraform has no record of these and will fail with `DependencyViolation` if they still exist when destroying the VPC.
+
+Always follow this exact order:
+
+### Step 1 — Delete Kubernetes ingress and services first
+
+```cmd
+kubectl delete ingress --all
+kubectl delete svc --all
+```
+
+Wait 1-2 minutes for AWS to release the load balancers automatically.
+
+### Step 2 — Delete leftover security groups created by Kubernetes
+
+Check what security groups remain:
+```cmd
+aws ec2 describe-security-groups --filters "Name=vpc-id,Values=YOUR_VPC_ID" --query "SecurityGroups[*].[GroupId,GroupName]" --output table
+```
+
+Delete any security group whose name starts with `k8s-`:
+```cmd
+aws ec2 delete-security-group --group-id YOUR_SG_ID
+```
+
+Do not delete the `default` security group — Terraform handles that.
+
+### Step 3 — Delete leftover load balancers
+
+```cmd
+aws elbv2 describe-load-balancers --query "LoadBalancers[*].LoadBalancerArn" --output text
+```
+
+Delete each one:
+```cmd
+aws elbv2 delete-load-balancer --load-balancer-arn YOUR_ARN
+```
+
+### Step 4 — Run terraform destroy
+
+```cmd
+cd infra\terraform
+terraform destroy -var="cluster_name=ai-code-reviewer" -var="db_password=YourStrongPassword123!"
+```
+
+Type `yes` when prompted. This will now complete cleanly.
+
+### Why ECR deletion works automatically
+
+All ECR repositories have `force_delete = true` in Terraform — so even if they contain Docker images, Terraform will delete them without errors.
