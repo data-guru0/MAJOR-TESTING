@@ -28,6 +28,10 @@ module "vpc" {
   enable_dns_support      = true
   map_public_ip_on_launch = true
 
+  manage_default_security_group  = true
+  default_security_group_ingress = []
+  default_security_group_egress  = []
+
   public_subnet_tags = {
     "kubernetes.io/cluster/${var.cluster_name}" = "shared"
     "kubernetes.io/role/elb"                    = "1"
@@ -105,6 +109,10 @@ resource "aws_security_group" "rds" {
   description = "Allow PostgreSQL access from within VPC"
   vpc_id      = module.vpc.vpc_id
 
+  lifecycle {
+    create_before_destroy = true
+  }
+
   ingress {
     from_port   = 5432
     to_port     = 5432
@@ -128,6 +136,10 @@ resource "aws_security_group" "elasticache" {
   name        = "${var.cluster_name}-redis-sg"
   description = "Allow Redis access from within VPC"
   vpc_id      = module.vpc.vpc_id
+
+  lifecycle {
+    create_before_destroy = true
+  }
 
   ingress {
     from_port   = 6379
@@ -195,6 +207,25 @@ resource "aws_elasticache_cluster" "redis" {
   }
 }
 
+resource "null_resource" "cleanup_k8s_lb" {
+  depends_on = [module.eks]
+
+  triggers = {
+    cluster_name = var.cluster_name
+    region       = var.region
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = <<-EOT
+      aws eks update-kubeconfig --name ${self.triggers.cluster_name} --region ${self.triggers.region} 2>/dev/null || true
+      kubectl delete svc --all -A --field-selector spec.type=LoadBalancer 2>/dev/null || true
+      echo "Waiting 30s for NLBs/ELBs to be deprovisioned..."
+      sleep 30
+    EOT
+  }
+}
+
 resource "aws_iam_policy" "lbc" {
   name        = "${var.cluster_name}-lbc-policy"
   description = "IAM policy for AWS Load Balancer Controller"
@@ -250,6 +281,7 @@ resource "aws_s3_bucket" "reports" {
 resource "aws_ecr_repository" "gateway" {
   name                 = "gateway"
   image_tag_mutability = "MUTABLE"
+  force_delete         = true
 
   tags = {
     Environment = var.environment
@@ -259,6 +291,7 @@ resource "aws_ecr_repository" "gateway" {
 resource "aws_ecr_repository" "webhook" {
   name                 = "webhook"
   image_tag_mutability = "MUTABLE"
+  force_delete         = true
 
   tags = {
     Environment = var.environment
@@ -268,6 +301,7 @@ resource "aws_ecr_repository" "webhook" {
 resource "aws_ecr_repository" "orchestrator" {
   name                 = "orchestrator"
   image_tag_mutability = "MUTABLE"
+  force_delete         = true
 
   tags = {
     Environment = var.environment
@@ -277,6 +311,7 @@ resource "aws_ecr_repository" "orchestrator" {
 resource "aws_ecr_repository" "reviewer" {
   name                 = "reviewer"
   image_tag_mutability = "MUTABLE"
+  force_delete         = true
 
   tags = {
     Environment = var.environment
@@ -286,6 +321,7 @@ resource "aws_ecr_repository" "reviewer" {
 resource "aws_ecr_repository" "learner" {
   name                 = "learner"
   image_tag_mutability = "MUTABLE"
+  force_delete         = true
 
   tags = {
     Environment = var.environment
@@ -295,6 +331,7 @@ resource "aws_ecr_repository" "learner" {
 resource "aws_ecr_repository" "evaluate" {
   name                 = "evaluate"
   image_tag_mutability = "MUTABLE"
+  force_delete         = true
 
   tags = {
     Environment = var.environment
